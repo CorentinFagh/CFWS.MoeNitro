@@ -353,13 +353,16 @@ var disk = {
 var cpu = {
     command: 'vmstat',
     afterEx: function (data, cb) {
+        data = data[3];
+
+
         cb(data);
     },
     map: [
-        "name",
-        "size",
-        "used",
-        "avai"
+        "",
+        "",
+        "",
+        ""
     ],
     graph: {
         conf: {
@@ -412,6 +415,11 @@ $("#starter").click(function () {
         exec(auth, disk, function (data) {
             console.log(data);
             printGraph(data, disk, diskEl);
+        });
+        // cpu
+        exec(auth, cpu, function (data) {
+            console.log(data);
+            printGraph(data, cpu, diskEl);
         });
 
 

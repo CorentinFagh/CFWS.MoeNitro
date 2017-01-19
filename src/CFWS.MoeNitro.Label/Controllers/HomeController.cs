@@ -5,6 +5,8 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using CFWS.MoeNitro.Label.Model;
 using Renci.SshNet;
+using Microsoft.Extensions.Configuration;
+using CFWS.MoeNitro.Label.Database;
 
 namespace CFWS.MoeNitro.Label.Controllers
 {
@@ -53,6 +55,25 @@ namespace CFWS.MoeNitro.Label.Controllers
                 success = command.ExitStatus== 0,
                 data = command.Result,
                 error = command.Error
+            });
+        }
+
+        public JsonResult Lol()
+        {
+
+            // Create an employee instance and save the entity to the database
+            var entry = new Node() {
+                Hostname = "192.168.0.81",
+                Name = "Test lol",
+                User = "corentin",
+                Password = "ingesup3"
+            };
+
+            
+
+            return Json(new
+            {
+                success = true
             });
         }
 

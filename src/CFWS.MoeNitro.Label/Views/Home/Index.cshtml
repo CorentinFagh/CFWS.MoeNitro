@@ -3,24 +3,31 @@
 }
 
 <div class="row">
-    <div class="col-md-6">
-        <h2>Noeuds</h2>
+    <div class="col-md-3">
+        <h2>
+            Noeuds
+            <button id="starter" type="submit" class="btn btn-default">Start</button>
+        </h2>
         <div class="node-container">
 
         </div>
         <div class="node-form-container">
-            <h2>Ajouter Noeuds</h2>
+            <h2>Ajouter Noeud</h2>
+            <div class="form-group">
+                <label> Nom </label>
+                <input type="text" id="name" name="name" placeholder="my suppasuppa node" class="form-control" />
+            </div>
             <div class="form-group">
                 <label> Host </label>
-                <input type="text" id="hostname" placeholder="Ip, Ndd..." class="form-control" />
+                <input type="text" id="hostname" name="hostname" placeholder="Ip, Ndd..." class="form-control" />
             </div>
             <div class="form-group">
                 <label> User </label>
-                <input type="text" id="username" placeholder="Bob, Kevin, R2D2..." class="form-control" />
+                <input type="text" id="username" name="username" placeholder="Bob, Kevin, R2D2..." class="form-control" />
             </div>
             <div class="form-group">
                 <label> Password </label>
-                <input type="text" id="password" placeholder="*********" class="form-control" />
+                <input type="text" id="password" name="password" placeholder="*********" class="form-control" />
             </div>
             <button id="creator" type="submit" class="btn btn-default">Créer</button>
         </div>
@@ -38,14 +45,21 @@
         <div class="output">
 
         </div>
+        <div id="chart-container">
+
+        </div>
     </div>
 </div>
 
-<div class="node-pattern">
+<div class="node-pattern" style="display:none">
     <div>
-        <label class="hostname"> </label>
+        <label class="name"></label> <span class="suppressor glyphicon glyphicon-remove pull-right" ></span>
     </div>
     <div>
-        <span class="username"> </span> - <span class="password"> </span>
+        <span class="hostname"></span> - <span class="username"> </span> - <span class="password"> </span>
     </div>
 </div>
+
+@section scripts{
+<script src="https://code.highcharts.com/highcharts.js"></script>  
+}

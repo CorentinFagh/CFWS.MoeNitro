@@ -72,8 +72,7 @@ var getAllNodes = function () {
             addNode(v);
         });
     });
-}
-
+};
 // Add one
 $("#creator").click(function () {
     $(this).prop("disable", true);
@@ -97,7 +96,6 @@ $("#creator").click(function () {
     dbsamere.lastuser.password = newPass;
     localStorage.setItem('dbsamere', JSON.stringify(dbsamere));
 });
-
 // Remove by id
 var removeNode = function (btn) {
     $(btn).prop("disable", true);
@@ -109,6 +107,8 @@ var removeNode = function (btn) {
         });
 
 };
+
+
 
 // Tout commence ici
 getAllNodes();
@@ -163,24 +163,29 @@ var exec = function (node, command, cb) {
         }
     })
     .done(function (r) {
-        if (!r.success) alert("Erreur sur le noeud : " + v.host + "\n" + r.error);
-        var endExec = function (data) {
-            var output = data;
-            if (command.map) {
-                if (Array.isArray(data)) {
-                    output = [];
-                    $.each(data, function (k, v) {
-                        output.push(mapCol(v, command));
-                    });
-                } else {
-                    output = mapCol(data, command);
-                }
-            }
-            cb(output);
-        };
-        if (command.afterEx) command.afterEx(r.data, endExec);
-        else endExec(r.data);
+        if (!r.success) {
+            alert("Erreur sur le noeud : " + node.name + " - " + node.host + "\n" + r.error);
+            return;
+        }
+        if (command.afterEx) command.afterEx(r.data, function (data) {
+            cleanResponse(data,command,cb);
+        });
+        else cleanResponse(r.data, command, cb);
     });
+};
+var cleanResponse = function (data, command, cb) {
+    var output = data;
+    if (command.map) {
+        if (Array.isArray(data)) {
+            output = [];
+            $.each(data, function (k, v) {
+                output.push(mapCol(v, command));
+            });
+        } else {
+            output = mapCol(data, command);
+        }
+    }
+    cb(output);
 };
 var mapCol = function (data, command) {
     var cols = [];
@@ -197,6 +202,35 @@ var mapCol = function (data, command) {
     return output;
 };
 /* Managrah */
+var printGraph = function (data, command, el) {
+    var conf =  $.extend({
+        tooltip: {
+            pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>'
+        },
+        plotOptions: {
+            pie: {
+                allowPointSelect: true,
+                cursor: 'pointer',
+                dataLabels: {
+                    enabled: true,
+                    format: '<b>{point.name}</b>: {point.percentage:.1f} %',
+                    style: {
+                        color: (Highcharts.theme && Highcharts.theme.contrastTextColor) || 'black'
+                    }
+                }
+            }
+        }
+    },
+    command.graph.conf);
+    // todo : faire quelque chose d'intelligent
+    conf.series = command.graph.generateSeries(data);
+    if (command.graph.generateCategories)
+        conf.xAxis.categories = command.graph.generateCategories(data);
+
+    $(el).highcharts(conf);
+};
+
+
 // Memory
 var memory = {
     command: 'free -m | grep "Mem"',
@@ -206,7 +240,29 @@ var memory = {
         "tota",
         "used",
         "free"
-    ]
+    ],
+    graph: {
+        conf: {
+            chart: {
+                type: 'pie'
+            },
+            title: {
+                text: 'Mémoire'
+            },
+            series: null
+        },
+        generateSeriesData: function (data) {
+            var sum = parseInt(data.free) + parseInt(data.tota) + parseInt(data.used);
+            var output = [{
+                name: 'Mem share',
+                data: [
+                   ['Free', data.free / data.tota * 100],
+                   ['Used', data.used / data.tota * 100]
+                ]
+            }];
+            return output;
+        }
+    }
 };
 // Disk
 var disk = {
@@ -220,65 +276,68 @@ var disk = {
         "size",
         "used",
         "avai"
-    ]
-};
-var releaseDiskGraph = function () {
+    ],
+    graph: {
+        conf: {
+            chart: {
+                type: 'bar'
+            },
+            title: {
+                text: 'Disks use'
+            },
+            xAxis: {
+                categories: []
+            },
+            yAxis: {
+                min: 0,
+                title: {
+                    text: 'Disk space'
+                }
+            },
+            legend: {
+                reversed: true
+            },
+            plotOptions: {
+                series: {
+                    stacking: 'normal'
+                }
+            },
+            series: [{
+                name: 'John',
+                data: [5, 3, 4, 7, 2]
+            }, {
+                name: 'Jane',
+                data: [2, 2, 3, 2, 1]
+            }, {
+                name: 'Joe',
+                data: [3, 4, 4, 2, 5]
+            }]
+        },
+        generateSeriesData: function (data) {
+            var sum = parseInt(data.free) + parseInt(data.tota) + parseInt(data.used);
 
-};
-var releaseMemoryGraph = function () {
-
+            var output = [
+               ['Free', data.free / data.tota * 100],
+               ['Used', data.used / data.tota * 100]
+            ];
+            return output;
+        }
+    }
 };
 
 $("#starter").click(function () {
+    var chartCount = 0;
     $.each(dbsamere.nodes, function (k, v) {
         var auth = {
             host: v.host,
             username: v.user,
             password: v.pass
         };
-
+        var el = $("<div>").addClass("chart" + chartCount).appendTo($('#chart-container'));
         // memory
         exec(auth, memory, function (data) {
-            console.log(data);
-            var sum = parseInt(data.free) + parseInt(data.tota) + parseInt(data.used);
-
-
-            var conf = {
-                chart: {
-                    plotBackgroundColor: null,
-                    plotBorderWidth: null,
-                    plotShadow: false
-                },
-                title: {
-                    text: 'Mémoire'
-                },
-                tooltip: {
-                    pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>'
-                },
-                plotOptions: {
-                    pie: {
-                        allowPointSelect: true,
-                        cursor: 'pointer',
-                        dataLabels: {
-                            enabled: true,
-                            format: '<b>{point.name}</b>: {point.percentage:.1f} %',
-                            style: {
-                                color: (Highcharts.theme && Highcharts.theme.contrastTextColor) || 'black'
-                            }
-                        }
-                    }
-                },
-                series: [{
-                    type: 'pie',
-                    name: 'Browser share',
-                    data: [
-                       ['Free', data.free / sum * 100],
-                       ['Total', data.tota / sum * 100],
-                       ['Used', data.used / sum * 100]
-                    ]
-                }]
-            };
-            $('#chart-container').highcharts(conf);
+            console.log(v,data);
+            printGraph(data, memory, el);
         });
         // disk
         exec(auth, disk, function (data) {

@@ -37,17 +37,29 @@ namespace CFWS.MoeNitro.Label.Controllers
         }
 
         public JsonResult Req(RequestModel input)
-        {           
-            AuthenticationMethod auth = new PasswordAuthenticationMethod(input.Username, input.Password);
-            ConnectionInfo connectionInfo = new ConnectionInfo(input.Host, input.Username, auth);
-
+        {
             SshCommand command = null;
-            using (var ssh = new SshClient(connectionInfo))
+            try
             {
-                ssh.Connect();
-                command = ssh.CreateCommand(input.Command);
-                command.Execute();
-                ssh.Disconnect();
+                AuthenticationMethod auth = new PasswordAuthenticationMethod(input.Username, input.Password);
+                ConnectionInfo connectionInfo = new ConnectionInfo(input.Host, input.Username, auth);
+
+                using (var ssh = new SshClient(connectionInfo))
+                {
+                    ssh.Connect();
+                    command = ssh.CreateCommand(input.Command);
+                    command.Execute();
+                    ssh.Disconnect();
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new
+                {
+                    success = false,
+                    error = ex.Message,
+                    data = ""
+                });
             }
             
             return Json(new

@@ -122,6 +122,7 @@ $("#commander").click(function () {
     }
     if (!dbsamere.nodes || dbsamere.nodes.length == 0) {
         alert("Aucun noeud à contacter");
+
         return false;
     }
     dbsamere.lastcommand = command;

@@ -127,24 +127,26 @@ $("#commander").click(function () {
     dbsamere.lastcommand = command;
     localStorage.setItem('dbsamere', JSON.stringify(dbsamere));
     $.each(dbsamere.nodes, function (k, v) {
-        $.ajax({
-            method: "GET",
-            url: "/home/req",
-            contentType: "application/json",
-            data: {
-                Host: v.host,
-                Username: v.user,
-                Password: v.pass,
-                Command: command
+        exec({
+            host: v.host,
+            username: v.user,
+            password: v.pass
+        },{
+            command : command
+        },
+        function (data) {
+            if (Array.isArray(data)){
+                $.each(data, function (k,v) {
+                    $("<div>").text(v)
+                    .appendTo(".output");
+                });
+            }
+            else {
+                $("<div>")
+                  .text(data)
+                  .appendTo(".output");
             }
         })
-        .done(function (r) {
-            if (!r.success) alert("Erreur sur le noeud : " + v.host + "\n" + r.error);
-
-            var newNode = $("<div>")
-                .text(r.data)
-                .appendTo(".output");
-        });
     });
     return false;
 });
@@ -167,10 +169,18 @@ var exec = function (node, command, cb) {
             alert("Erreur sur le noeud : " + node.name + " - " + node.host + "\n" + r.error);
             return;
         }
-        if (command.afterEx) command.afterEx(r.data, function (data) {
+        var commandResult = r.data;
+        if (commandResult.indexOf("\n") > -1) {
+            commandResult = commandResult.split("\n");
+            commandResult.pop();
+            if (commandResult.length == 1)
+                commandResult = commandResult[0];
+        }
+
+        if (command.afterEx) command.afterEx(commandResult, function (data) {
             cleanResponse(data,command,cb);
         });
-        else cleanResponse(r.data, command, cb);
+        else cleanResponse(commandResult, command, cb);
     });
 };
 var cleanResponse = function (data, command, cb) {
@@ -251,7 +261,7 @@ var memory = {
             },
             series: null
         },
-        generateSeriesData: function (data) {
+        generateSeries: function (data) {
             var sum = parseInt(data.free) + parseInt(data.tota) + parseInt(data.used);
             var output = [{
                 name: 'Mem share',
@@ -266,9 +276,82 @@ var memory = {
 };
 // Disk
 var disk = {
-    command: 'df -h | grep "^/"',
+    command: 'df | grep "^/"',
+    afterEx:null,
+    map: [
+        "name",
+        "size",
+        "used",
+        "avai"
+    ],
+    graph: {
+        conf: {
+            chart: {
+                type: 'bar'
+            },
+            title: {
+                text: 'Disks use'
+            },
+            xAxis: {
+                categories: ["used","available"]
+            },
+            yAxis: {
+                min: 0,
+                title: {
+                    text: 'Disk space'
+                }
+            },
+            legend: {
+                reversed: true
+            },
+            plotOptions: {
+                series: {
+                    stacking: 'normal'
+                }
+            },
+            series:null
+        },
+        generateSeries: function (data) {
+            var output = [{
+                name: "Available",
+                data: []
+            }, {
+                name: "Used",
+                data: []
+            }];
+            if (Array.isArray(data))
+                $.each(data, function (k, v) {
+                    if (v.name) {
+                        output[0].data.push(parseInt(v.avai));
+                        output[1].data.push(parseInt(v.used));
+                    }
+                });
+            else {
+                if (data.name) {
+                    output[0].data.push(parseInt(data.avai));
+                    output[1].data.push(parseInt(data.used));
+                }
+            }
+            return output;
+        },
+        generateCategories: function (data) {
+            var output = [];
+            if (Array.isArray(data))
+                $.each(data, function (k, v) {
+                    if (v.name)
+                        output.push(v.name);
+                });
+            else {
+                output.push(data.name);
+            }
+            return output;
+        }
+    }
+};
+// Cpu
+var cpu = {
+    command: 'vmstat',
     afterEx: function (data, cb) {
-        data = data.split("\n");
         cb(data);
     },
     map: [
@@ -286,7 +369,7 @@ var disk = {
                 text: 'Disks use'
             },
             xAxis: {
-                categories: []
+                categories: ["used", "available"]
             },
             yAxis: {
                 min: 0,
@@ -302,26 +385,8 @@ var disk = {
                     stacking: 'normal'
                 }
             },
-            series: [{
-                name: 'John',
-                data: [5, 3, 4, 7, 2]
-            }, {
-                name: 'Jane',
-                data: [2, 2, 3, 2, 1]
-            }, {
-                name: 'Joe',
-                data: [3, 4, 4, 2, 5]
-            }]
+            series: null
         },
-        generateSeriesData: function (data) {
-            var sum = parseInt(data.free) + parseInt(data.tota) + parseInt(data.used);
-
-            var output = [
-               ['Free', data.free / data.tota * 100],
-               ['Used', data.used / data.tota * 100]
-            ];
-            return output;
-        }
     }
 };
 
@@ -333,15 +398,19 @@ $("#starter").click(function () {
             username: v.user,
             password: v.pass
         };
-        var el = $("<div>").addClass("chart" + chartCount).appendTo($('#chart-container'));
+        var el = $("<div>").addClass("row chart_" + chartCount + "_a").appendTo($('#chart-container'));
+        $("<div>").html("<strong>" + v.name + "</strong>").appendTo($("<div>").addClass("col-xs-12").appendTo(el));
+        var memEl = $("<div>").appendTo($("<div>").addClass("col-sm-6").appendTo(el));
         // memory
         exec(auth, memory, function (data) {
             console.log(v,data);
-            printGraph(data, memory, el);
+            printGraph(data, memory, memEl);
         });
+        var diskEl = $("<div>").appendTo($("<div>").addClass("col-sm-6").appendTo(el));
         // disk
         exec(auth, disk, function (data) {
             console.log(data);
+            printGraph(data, disk, diskEl);
         });
 
 

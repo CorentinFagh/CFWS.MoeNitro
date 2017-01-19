@@ -17,25 +17,6 @@ namespace CFWS.MoeNitro.Label.Controllers
             return View();
         }
 
-        public IActionResult About()
-        {
-            ViewData["Message"] = "Your application description page.";
-
-            return View();
-        }
-
-        public IActionResult Contact()
-        {
-            ViewData["Message"] = "Your contact page.";
-
-            return View();
-        }
-
-        public IActionResult Error()
-        {
-            return View();
-        }
-
         public JsonResult Req(RequestModel input)
         {
             SshCommand command = null;
@@ -67,25 +48,6 @@ namespace CFWS.MoeNitro.Label.Controllers
                 success = command.ExitStatus== 0,
                 data = command.Result,
                 error = command.Error
-            });
-        }
-
-        public JsonResult Lol()
-        {
-
-            // Create an employee instance and save the entity to the database
-            var entry = new Node() {
-                Hostname = "192.168.0.81",
-                Name = "Test lol",
-                User = "corentin",
-                Password = "ingesup3"
-            };
-
-            
-
-            return Json(new
-            {
-                success = true
             });
         }
 

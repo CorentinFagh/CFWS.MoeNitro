@@ -206,10 +206,17 @@ var mapCol = function (data, command) {
         if (item.length > 0) cols.push(item);
     }
     var output = {};
-    $.each(command.map, function (k, v) {
-        if (k < cols.length)
-            output[v] = cols[k];
-    });
+    if (command.map[0] == null) {
+        for (var i = cols.length -1 ; i >= cols.length - 1 - command.map.length; i--) {
+            output[command.map[command.map.length - (cols.length - i)]] = cols[i];
+        }
+    }
+    else {
+        $.each(command.map, function (k, v) {
+            if (k < cols.length)
+                output[v] = cols[k];
+        });
+    }   
     return output;
 };
 /* Managrah */
@@ -267,7 +274,7 @@ var memory = {
             var output = [{
                 name: 'Mem share',
                 data: [
-                   ['Free', data.free / data.tota * 100],
+                   ['Free', (data.tota- data.used) / data.tota * 100],
                    ['Used', data.used / data.tota * 100]
                 ]
             }];
@@ -351,7 +358,7 @@ var disk = {
 };
 // Cpu
 var cpu = {
-    command: 'vmstat',
+    command: 'mpstat',
     afterEx: function (data, cb) {
         data = data[3];
 
@@ -359,10 +366,8 @@ var cpu = {
         cb(data);
     },
     map: [
-        "",
-        "",
-        "",
-        ""
+        null,
+        "idle",
     ],
     graph: {
         conf: {
@@ -370,10 +375,10 @@ var cpu = {
                 type: 'bar'
             },
             title: {
-                text: 'Disks use'
+                text: 'Cpu use'
             },
             xAxis: {
-                categories: ["used", "available"]
+                categories: ["free", "used"]
             },
             yAxis: {
                 min: 0,
@@ -391,6 +396,19 @@ var cpu = {
             },
             series: null
         },
+        generateSeries: function (data) {
+            var output = [{
+                name: "free",
+                data: []
+            }, {
+                name: "Used",
+                data: []
+            }];
+            output[0].data.push(parseInt(data.idle));
+            output[1].data.push(100 - parseInt(data.idle));
+
+            return output;
+        }
     }
 };
 
@@ -404,22 +422,23 @@ $("#starter").click(function () {
         };
         var el = $("<div>").addClass("row chart_" + chartCount + "_a").appendTo($('#chart-container'));
         $("<div>").html("<strong>" + v.name + "</strong>").appendTo($("<div>").addClass("col-xs-12").appendTo(el));
-        var memEl = $("<div>").appendTo($("<div>").addClass("col-sm-6").appendTo(el));
+        var memEl = $("<div>").appendTo($("<div>").addClass("col-sm-4").appendTo(el));
         // memory
         exec(auth, memory, function (data) {
             console.log(v,data);
             printGraph(data, memory, memEl);
         });
-        var diskEl = $("<div>").appendTo($("<div>").addClass("col-sm-6").appendTo(el));
+        var diskEl = $("<div>").appendTo($("<div>").addClass("col-sm-4").appendTo(el));
         // disk
         exec(auth, disk, function (data) {
             console.log(data);
             printGraph(data, disk, diskEl);
         });
         // cpu
+        var cpuEl = $("<div>").appendTo($("<div>").addClass("col-sm-4").appendTo(el));
         exec(auth, cpu, function (data) {
             console.log(data);
-            printGraph(data, cpu, diskEl);
+            printGraph(data, cpu, cpuEl);
         });
 
 
